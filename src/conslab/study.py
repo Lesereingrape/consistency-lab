@@ -9,8 +9,12 @@ and average compute are attributable purely to the decoding/voting policy.
 
 from __future__ import annotations
 
+import platform
+import sys
 from dataclasses import asdict, dataclass, field
 from statistics import mean
+
+import torch
 
 from .consistency import adaptive_selfconsistency, fixed_selfconsistency
 from .data import Example
@@ -105,6 +109,23 @@ def _std(xs: list[float]) -> float:
     return (sum((x - mu) ** 2 for x in xs) / (len(xs) - 1)) ** 0.5
 
 
+def environment() -> dict:
+    """The machine these numbers came off, recorded beside them.
+
+    Sampling chains and averaging logits over a batch are both float reductions whose
+    order depends on the thread count and the torch build, so a rerun is bit-exact
+    *inside* this environment and merely close outside it. The artifact says which
+    one it is instead of the README claiming a reproducibility it cannot deliver.
+    """
+    return {
+        "python": sys.version.split()[0],
+        "platform": platform.platform(),
+        "torch": torch.__version__,
+        "threads": torch.get_num_threads(),
+        "device": "cpu",
+    }
+
+
 def aggregate(per_seed: list[dict]) -> dict:
     out: dict = {"seeds": [s["seed"] for s in per_seed], "n_max": N_MAX,
                  "n_eval": N_EVAL, "report_theta": ADAPTIVE_REPORT_THETA}
@@ -147,6 +168,7 @@ def build_results(per_seed: list[dict], runtime: float) -> dict:
                        "fixed_ns": list(FIXED_NS), "thetas": list(THETAS)},
             "summary": aggregate(per_seed),
             "per_seed": per_seed,
+            "environment": environment(),
             "runtime_sec": round(runtime, 1)}
 
 
@@ -156,6 +178,7 @@ __all__ = [
     "SeedMetrics",
     "aggregate",
     "build_results",
+    "environment",
     "measure",
     "run_seed",
 ]

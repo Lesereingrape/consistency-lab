@@ -71,6 +71,13 @@ def build(data: dict) -> str:
                "voting has real headroom")
     out.append(f"- fixed self-consistency at the full {cfg['n_max']}-chain budget = "
                f"**{ceiling_n:.3f}** (the accuracy the adaptive rule is chasing)")
+    env = data.get("environment")
+    if env:
+        out.append(f"- measured under: Python {env['python']} on {env['platform']}, "
+                   f"torch {env['torch']}, {env['threads']} CPU threads, {env['device']} "
+                   "- sampling and batched logits are float reductions whose order "
+                   "depends on that environment, so a rerun inside it is expected to be "
+                   "field-for-field identical and a rerun elsewhere only close")
     out.append("")
 
     out.append("### Headline: the accuracy-vs-compute frontier\n")
@@ -95,20 +102,30 @@ def build(data: dict) -> str:
     bk = s["bucket_avg_chains"]
     order = ["consistent(1.0)", "easy(0.8-1)", "contested(.5-.8)", "hard(<.5)"]
     parts = "  ".join(f"*{k}* **{bk[k]:.1f}**" for k in order if k in bk)
+    cheap = min(bk[k] for k in order if k in bk)
+    dear = max(bk[k] for k in order if k in bk)
     out.append(
         f"Binning questions by their true single-chain reliability (θ={theta}): {parts} "
-        "mean chains. The rule *automatically* spends ~3 chains where the solver is "
-        "unanimous and up to ~18 where it is contested, with no per-question oracle - "
-        "that is the whole point of a sequential stopping test, and we measure it "
-        "rather than assert it."
+        f"mean chains. The rule *automatically* spends ~{cheap:.0f} chains where the "
+        f"solver is unanimous and ~{dear:.0f} where it is contested, with no "
+        "per-question oracle - that is the whole point of a sequential stopping test, "
+        "and we measure it rather than assert it."
     )
+    if best_theta != theta:
+        out.append("")
+        out.append(f"(The frontier headline above reports the *cheapest* threshold that "
+                   f"still matches the full budget, θ={best_theta}; this difficulty split "
+                   f"is measured at the published θ={theta}.)")
     out.append("")
 
     out.append("### The honest catch: greedy is a strong reference here\n")
+    g = s["greedy_acc"]["mean"]
+    vs_ceiling = (f"which *beats* full-budget self-consistency ({ceiling_n:.3f})"
+                  if g >= ceiling_n else
+                  f"essentially matching full-budget self-consistency ({ceiling_n:.3f})")
     out.append(
         f"On this deterministic arithmetic task greedy decoding already scores "
-        f"**{s['greedy_acc']['mean']:.3f}**, essentially matching full-budget "
-        f"self-consistency ({ceiling_n:.3f}). That is a real, disclosed result and we "
+        f"**{g:.3f}**, {vs_ceiling}. That is a real, disclosed result and we "
         "will not hide it: when a single argmax chain is near-optimal, *any* sampling "
         "scheme pays to reproduce what greedy got for free. The value of adaptive "
         "stopping is therefore specifically the **sampled-chain frontier** (naive "
@@ -119,7 +136,8 @@ def build(data: dict) -> str:
     out.append("")
 
     out.append("### Honest limitations\n")
-    out.append("- Deliberately toy: a ~59k-parameter carry-chain adder. Real "
+    out.append(f"- Deliberately toy: a ~{round(s['n_params_mean'] / 1000)}k-parameter "
+               "carry-chain adder. Real "
                "self-consistency runs over free-form CoT on GSM8K-class problems; the "
                "*method* (a sequential stopping test over a shared sample pool, scored "
                "against an exact verifier) is what transfers, not this task.")
@@ -134,5 +152,25 @@ def build(data: dict) -> str:
     return "\n".join(out)
 
 
+def _write(path: Path, block: str) -> None:
+    text = path.read_text(encoding="utf-8")
+    start, end = "<!-- RESULTS:START -->", "<!-- RESULTS:END -->"
+    head, _, rest = text.partition(start)
+    _, _, tail = rest.partition(end)
+    path.write_text(f"{head}{start}\n{block}\n{end}{tail}", encoding="utf-8")
+
+
 if __name__ == "__main__":
-    print(build(json.loads(Path("results/frontier.json").read_text(encoding="utf-8"))))
+    import argparse
+
+    ap = argparse.ArgumentParser(prog="make_report")
+    ap.add_argument("--write", action="store_true",
+                    help="splice the block into README.md instead of printing it")
+    ap.add_argument("--results", default="results/frontier.json")
+    args = ap.parse_args()
+    rendered = build(json.loads(Path(args.results).read_text(encoding="utf-8")))
+    if args.write:
+        _write(Path("README.md"), rendered)
+        print("README results block rewritten")
+    else:
+        print(rendered)
