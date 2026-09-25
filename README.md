@@ -39,7 +39,11 @@ overclaimed. Notably we disclose the inconvenient result (greedy decoding is not
 near-optimal here, it beats the full-budget sampler) instead of hiding it.
 
 The artifact also records the environment it was measured in (Python, torch, thread
-count), and two runs in that environment reproduce it field for field - a test in
+count), and two runs in that environment reproduce it field for field - the check we
+ran wrote one scratch artifact and diffed it against the committed one: a single
+differing field, `runtime_sec` (19.9s against the published 29.5s), with the per-seed
+records, the fixed-budget and adaptive frontier tables and the environment block
+identical. A test in
 `tests/test_artifact_is_internally_consistent.py` recomputes the whole `summary` block
 from the stored per-seed records. When a republished run moved the frontier by a couple
 of points, the README was re-rendered from the new JSON rather than kept pretty.
