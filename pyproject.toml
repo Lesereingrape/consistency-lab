@@ -1,0 +1,35 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "conslab"
+version = "0.1.0"
+description = "A CPU-only study of adaptive early-stopping self-consistency: a sequential stopping rule that halts reasoning-chain sampling once the majority vote is statistically decided, measured on an accuracy-vs-compute frontier against fixed-N self-consistency over a verifiable tiny-transformer chain-of-thought addition task."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "Lesereingrape" }]
+keywords = ["self-consistency", "chain-of-thought", "adaptive-sampling", "llm", "reasoning", "pytorch"]
+dependencies = ["torch>=2.0"]
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "ruff>=0.14,<0.15"]
+
+[project.scripts]
+conslab = "conslab.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+src = ["src"]
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "I", "UP", "RUF", "B", "C4", "SIM", "FURB"]
+ignore = ["SIM105"]
