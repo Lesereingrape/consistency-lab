@@ -42,7 +42,7 @@ instead of hiding it.
 
 ```bash
 pip install -e .                    # torch is the only runtime dependency
-python -m conslab.cli demo          # watch one question hit the stopping rule
+python -m conslab.cli demo          # one question from the published pool: T=1.0, N<=32, theta=0.9
 python experiments/run_study.py     # full 3-seed study -> results/frontier.json
 python experiments/make_report.py   # re-render the README block from the JSON
 ```

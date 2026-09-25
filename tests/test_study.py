@@ -2,7 +2,30 @@
 
 from __future__ import annotations
 
+import inspect
+import json
+from pathlib import Path
+
+from conslab.cli import demo
 from conslab.study import ADAPTIVE_REPORT_THETA, FIXED_NS, SEEDS, THETAS, aggregate, build_results
+
+
+def test_the_demo_draws_chains_at_the_published_settings():
+    """A demo that samples differently is a second, unpublished experiment.
+
+    ``demo`` used to call ``collect`` without a temperature and inherit the
+    solver's 0.8 default, while the frontier was measured at 1.0. The printed
+    single-chain reliability, fixed-SC and adaptive-SC answers therefore looked
+    like the README's numbers and were not: same name, different sampler.
+    """
+    path = Path(__file__).resolve().parents[1] / "results" / "frontier.json"
+    config = json.loads(path.read_text(encoding="utf-8"))["config"]
+    defaults = {name: p.default for name, p in
+                inspect.signature(demo).parameters.items()}
+    assert defaults["temperature"] == config["temperature"]
+    assert defaults["n_max"] == config["n_max"]
+    assert defaults["theta"] == ADAPTIVE_REPORT_THETA
+    assert defaults["theta"] in config["thetas"]
 
 
 def _fake_seed(seed: int) -> dict:
