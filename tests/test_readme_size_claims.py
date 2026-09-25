@@ -1,8 +1,9 @@
 """The README's hand-written size claims must describe the code that exists.
 
 Everything inside the RESULTS markers is byte-pinned against
-``results/frontier.json``; the "~700-line" figure in the first paragraph is the one
-other hand-written number a reader takes on trust, so it gets a guard too.
+``results/frontier.json``; the hand-written figures outside them - the "~700-line"
+source size, the parameter count, the published runtime and the Quickstart's budget for
+a rerun - are the numbers a reader takes on trust, so each one gets a guard here.
 """
 
 from __future__ import annotations
@@ -62,6 +63,18 @@ def test_the_published_wall_clock_is_the_one_the_artifact_records():
     assert float(named[0]) == artifact["runtime_sec"], (
         f"README says the published run took {named[0]}s, "
         f"results/frontier.json records {artifact['runtime_sec']}s")
+
+
+def test_the_quickstart_budget_matches_the_recorded_runtime():
+    """The comment beside `run_study.py` is a budget a reader plans around."""
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    budgets = [int(m.group(1)) for m in re.finditer(r"\(~(\d+)s\)", readme)]
+    assert budgets, "the Quickstart no longer budgets the study run; drop this guard with it"
+    artifact = json.loads((ROOT / "results" / "frontier.json").read_text(encoding="utf-8"))
+    for budget in budgets:
+        assert 0.5 * budget <= artifact["runtime_sec"] <= 2.0 * budget, (
+            f"the README budgets ~{budget}s for the study; the committed run took "
+            f"{artifact['runtime_sec']}s")
 
 
 def test_the_documented_rerun_writes_a_relative_scratch_file():
