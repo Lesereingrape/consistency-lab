@@ -36,7 +36,10 @@ prose is rendered mechanically from that JSON by `experiments/make_report.py`, a
 test asserts the README equals it byte-for-byte - so numbers *and* the superlative
 ("which threshold wins the frontier") are computed from data and cannot be hand-tuned or
 overclaimed. Notably we disclose the inconvenient result (greedy decoding is not just
-near-optimal here, it beats the full-budget sampler) instead of hiding it.
+near-optimal here, it beats the full-budget sampler) instead of hiding it. Every `±`
+printed below is the **sample** standard deviation over the 3 seeds (divided by n-1),
+which is the convention a reader recomputing it from `per_seed` has to use to land on the
+same digits.
 
 The artifact also records the environment it was measured in (Python, torch, thread
 count), and two runs in that environment reproduce it field for field - the check we
