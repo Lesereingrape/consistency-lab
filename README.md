@@ -42,11 +42,16 @@ which is the convention a reader recomputing it from `per_seed` has to use to la
 same digits.
 
 The artifact also records the environment it was measured in (Python, torch, thread
-count), and two runs in that environment reproduce it field for field - the check we
-ran wrote one scratch artifact and diffed it against the committed one: a single
-differing field, `runtime_sec` (19.9s against the published 29.5s), with the per-seed
+count), and a rerun inside it reproduces every figure in the file - the check we ran
+wrote one scratch artifact and diffed it against the committed one: a single
+differing field, `runtime_sec` (19.9s against the published 29.5s, and only the second
+of those is `runtime_sec` in `results/frontier.json`, which a test reads back; the
+scratch file itself was thrown away), with the per-seed
 records, the fixed-budget and adaptive frontier tables and the environment block
-identical. A test in
+identical. That rerun writes `again-check.json` in the working directory rather than a
+`/tmp/...` path on purpose: Git-Bash rewrites a `/tmp/...` argument into `%TEMP%` before the
+script sees it, while cmd and PowerShell pass it through and leave the script to create
+`<drive>:\tmp`. A test in
 `tests/test_artifact_is_internally_consistent.py` recomputes the whole `summary` block
 from the stored per-seed records. When a republished run moved the frontier by a couple
 of points, the README was re-rendered from the new JSON rather than kept pretty.
@@ -57,7 +62,7 @@ of points, the README was re-rendered from the new JSON rather than kept pretty.
 pip install -e .                    # torch is the only runtime dependency
 python -m conslab.cli demo          # one question from the published pool: T=1.0, N<=32, theta=0.9
 python experiments/run_study.py     # full 3-seed study -> results/frontier.json (~30s)
-python experiments/run_study.py --out /tmp/again.json   # rerun elsewhere and diff it
+python experiments/run_study.py --out again-check.json   # rerun to diff, results/ untouched
 python experiments/make_report.py --write   # splice the re-rendered block into README.md
 ```
 
